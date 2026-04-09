@@ -1,34 +1,48 @@
-#This file gets data from the other files to fill display with accurate data and data source
+#This file acts as the brain for central logic and gets data from the other files to fill display with accurate data and data source.
+#Checks Eternet first and if ethernet is down, it switches automatically to P2P(ESP32)
 import time
 from serial_reader import get_serial_data
-from system_logic import get_parking_status, get_system_status
+from system_logic import get_parking_status
 from network_checker import ethernet_connected
 
-while True:
+# Optional: track display state
+display_active = False
 
-    ethernet_ok = ethernet_connected()
+while True:
+    # --- Check Ethernet first ---
+    if ethernet_connected():
+        if display_active:
+            print("Ethernet online → Turning P2P display OFF")
+            display_active = False
+        else:
+            print("Ethernet online → Display remains OFF")
+        time.sleep(1)
+        continue  # skip P2P display updates
+
+    # --- Ethernet is offline, check P2P (ESP32) ---
     serial_data = get_serial_data()
 
-    # Determine system status FIRST
-    system_status = get_system_status(ethernet_ok, serial_data is not None)
-
-
-# Choose data source
-    if ethernet_ok:
-        spots = 40  # simulated network value
-        mode = "ETHERNET"
-    else:
+    if serial_data is not None:
         spots = serial_data
-        mode = "P2P"
+        parking_status, message = get_parking_status(spots)
 
-    # Determine parking color separately
-    parking_status, message = get_parking_status(spots)
+        if not display_active:
+            print("P2P connection detected → Turning display ON")
+            display_active = True
 
-    print("Mode:", mode)
-    print("System Status:", system_status)
-    print("Parking Status:", parking_status)
-    print("Spots:", spots)
-    print("Message:", message)
-    print("--------------------------")
+        # --- Update display ---
+        print("P2P Display Active")
+        print("Parking Status:", parking_status)
+        print("Spots Available:", spots)
+        print("Message:", message)
+        print("--------------------------")
+
+    else:
+        # P2P disconnected or no data
+        if display_active:
+            print("P2P display ON but ESP32 disconnected → Turning display OFF")
+            display_active = False
+        else:
+            print("No P2P data. Display remains OFF.")
 
     time.sleep(1)
