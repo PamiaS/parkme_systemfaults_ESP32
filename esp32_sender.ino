@@ -1,5 +1,5 @@
 //This is a test file implemented in Arduino Sketch(.ino) to make sure that the ESP32 works and can show data on serial port.
-int available_spots = 25;// This is just a test number
+int available_spots = 25;// This is number can be manually changed for now, but will be populated with data from LiDAR.
 
 void setup() {
   Serial.begin(115200);
